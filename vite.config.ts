@@ -8,11 +8,22 @@ import vueDevTools from 'vite-plugin-vue-devtools'
 export default defineConfig({
   plugins: [
     vue(),
-    vueDevTools(),
+    // vueDevTools(), // 注释或删除这行以关闭底部开发者工具
   ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  // 配置反向代理
+  server: {
+    proxy: {
+      '/api': { // 如果前端请求的路径是/api
+        target: 'http://localhost:10010', // 那么就把请求交给此服务器
+        secure: false,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''), // 并抹除/api，因为有"/api"就代表是连接服务器的请求
+      }
+    }
+  }
 })
