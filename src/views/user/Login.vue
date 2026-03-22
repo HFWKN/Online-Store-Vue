@@ -23,8 +23,13 @@ const tijiao = async()=>{
     const result = await LoginApi(UserDto.value)
     if(result.success){
       ElMessage.success('正在登录');
-      //把当前登录用户的信息储存在浏览器的localStorage中   使用json.stringify()方法将对象转为字符串保存
-      localStorage.setItem('loginUser',JSON.stringify(result.data));  
+      // 把当前登录用户的信息储存在浏览器的localStorage中
+      // 如果后端返回的数据里没有 username，我们手动把登录时输入的 username 拼进去
+      const loginData = result.data || {}
+      if (!loginData.username) {
+        loginData.username = UserDto.value.username
+      }
+      localStorage.setItem('loginUser', JSON.stringify(loginData));  
       router.push('/home');
       ElMessage.success('登录成功');
     }else{
