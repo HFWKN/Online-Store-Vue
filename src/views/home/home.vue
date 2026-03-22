@@ -1,19 +1,35 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { pageList } from '@/api/product/page.js'
 import { categoryList } from '@/api/product/productCategory.js'
 import { Picture } from '@element-plus/icons-vue'
+
+import banner1 from '@/image/Design006_CwCkwTBK7m.jpg'
+import banner2 from '@/image/OIP-C (1).webp'
+import banner3 from '@/image/OIP-C.webp'
+
+const router = useRouter()
 
 // 状态管理
 const productList = ref([])
 const loading = ref(true)
 const 当前页码 = ref(1)
-const 每页条数 = ref(20) // 调整为更适合展示的条数，每行5个，4行=20个
+const 每页条数 = ref(24) // 调整为24条，配合一行6个商品，正好4行
 const 总数 = ref(0)
 const currentCategoryId = ref(null) // 记录当前选中的分类ID
+const searchKeyword = ref('') // 搜索关键词
+const currentUsername = ref('') // 当前登录用户名
 
 // 分类数据
 const categories = ref([])
+
+// 轮播图数据
+const bannerImages = ref([
+  banner1,
+  banner2,
+  banner3
+])
 
 // 模拟右侧推荐数据
 const rightBanners = ref([
@@ -30,7 +46,8 @@ const loadProducts = async () => {
     const params = {
       pageNo: 当前页码.value,
       pageSize: 每页条数.value,
-      categoryId: currentCategoryId.value // 加入分类ID参数
+      categoryId: currentCategoryId.value, // 加入分类ID参数
+      productName: searchKeyword.value // 加入搜索关键词参数
     }
     const res = await pageList(params)
     if (res.success && res.data) {
@@ -77,13 +94,39 @@ const handleCategoryClick = (categoryId) => {
   loadProducts()
 }
 
+const handleSearch = () => {
+  当前页码.value = 1 // 搜索时重置页码到第一页
+  loadProducts()
+}
+
+const handleHotSearch = (keyword) => {
+  searchKeyword.value = keyword
+  handleSearch()
+}
+
 const onCurrentChange = (value) => {
   当前页码.value = value
   loadProducts()
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
+const handleLogout = () => {
+  localStorage.removeItem('loginUser')
+  router.push('/login')
+}
+
 onMounted(() => {
+  // 获取当前登录用户名
+  const loginUserStr = localStorage.getItem('loginUser')
+  if (loginUserStr) {
+    try {
+      const user = JSON.parse(loginUserStr)
+      currentUsername.value = user.username || user.name || '用户'
+    } catch (e) {
+      console.error('解析用户信息失败')
+    }
+  }
+
   loadCategories()
   loadProducts()
 })
@@ -91,13 +134,35 @@ onMounted(() => {
 
 <template>
   <div class="taobao-container">
+    <!-- 顶部导航条 -->
+    <div class="site-nav">
+      <div class="site-nav-inner">
+        <div class="nav-left">
+          <a href="javascript:void(0)" class="nav-link">我的订单</a>
+          <span class="nav-divider">|</span>
+          <a href="javascript:void(0)" class="nav-link">购物车</a>
+          <span class="nav-divider">|</span>
+          <a href="javascript:void(0)" class="nav-link">收藏夹</a>
+        </div>
+        <div class="nav-right">
+          <template v-if="currentUsername">
+            <span class="welcome-text">欢迎您，{{ currentUsername }}</span>
+            <a href="javascript:void(0)" class="nav-link logout-link" @click="handleLogout">退出登录 / 切换账号</a>
+          </template>
+          <template v-else>
+            <router-link to="/login" class="nav-link">请登录</router-link>
+          </template>
+        </div>
+      </div>
+    </div>
+
     <!-- 顶部搜索栏 -->
     <header class="tb-header">
       <div class="header-inner">
         <div class="logo-area">
-          <div class="logo-main">淘宝</div>
+          <div class="logo-main">拼少少</div>
           <div class="logo-sub">
-            <span class="logo-domain">Taobao.com</span>
+            <span class="logo-domain">Pinshaoshao.com</span>
             <span class="logo-tag">热卖<br/>商品</span>
           </div>
         </div>
@@ -105,15 +170,21 @@ onMounted(() => {
         <div class="search-area">
           <div class="search-box">
             <div class="search-type">宝贝 <span class="divider">|</span></div>
-            <input type="text" class="search-input" placeholder="手工材料包" />
-            <button class="search-btn">搜索</button>
+            <input 
+              type="text" 
+              class="search-input" 
+              placeholder="搜索商品" 
+              v-model="searchKeyword"
+              @keyup.enter="handleSearch"
+            />
+            <button class="search-btn" @click="handleSearch">搜索</button>
           </div>
           <div class="search-hot-links">
-            <a href="#">儿童diy手工沙画</a>
-            <a href="#">沙石画</a>
-            <a href="#">美容仪器</a>
-            <a href="#">木鱼预</a>
-            <a href="#">儿童彩色沙画</a>
+            <a href="javascript:void(0)" @click.prevent="handleHotSearch('2026新款相机')">2026新款相机</a>
+            <a href="javascript:void(0)" @click.prevent="handleHotSearch('智能洗衣机')">智能洗衣机</a>
+            <a href="javascript:void(0)" @click.prevent="handleHotSearch('美的空调')">美的空调</a>
+            <a href="javascript:void(0)" @click.prevent="handleHotSearch('无线蓝牙耳机')">无线蓝牙耳机</a>
+            <a href="javascript:void(0)" @click.prevent="handleHotSearch('尼康Nikon')">尼康Nikon</a>
           </div>
         </div>
       </div>
@@ -142,18 +213,11 @@ onMounted(() => {
 
         <!-- 中间大图展示 -->
         <div class="tb-banner-area">
-          <div class="banner-card">
-            <div class="banner-text">
-              <h2>春回暖<br/>衣上新</h2>
-              <p>新装上架 一键焕新</p>
-            </div>
-            <div class="banner-dots">
-              <span class="dot active"></span>
-              <span class="dot"></span>
-              <span class="dot"></span>
-              <span class="dot"></span>
-            </div>
-          </div>
+          <el-carousel height="480px" arrow="hover" trigger="click">
+            <el-carousel-item v-for="(img, index) in bannerImages" :key="index">
+              <el-image :src="img" fit="cover" class="banner-img" />
+            </el-carousel-item>
+          </el-carousel>
         </div>
 
         <!-- 右侧推荐卡片 -->
@@ -198,10 +262,6 @@ onMounted(() => {
           </div>
           <div class="p-info">
             <div class="p-title" :title="item.name">{{ item.name }}</div>
-            <div class="p-tags">
-              <span v-if="item.companyName" class="tag-company">{{ item.companyName }}</span>
-              <span v-else class="tag-hot">热卖</span>
-            </div>
             <div class="p-price-row">
               <span class="price"><span class="currency">¥</span>{{ Number(item.price).toFixed(2) }}</span>
               <span class="sales">0人付款</span>
@@ -233,21 +293,77 @@ onMounted(() => {
 <style scoped>
 /* 淘宝风格整体容器 */
 .taobao-container {
-  background-color: #f4f4f4;
+  background-color: #fff; /* 将整个页面大背景改为纯白 */
   min-height: 100vh;
   font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
   color: #333;
 }
 
 /* 内部居中容器宽度统一 */
-.header-inner, .main-inner, .tb-recommend {
-  width: 1200px;
+.header-inner, .main-inner, .tb-recommend, .site-nav-inner {
+  width: 1400px; /* 从1200px调整为1400px，让显示区域更宽 */
   margin: 0 auto;
+}
+
+/* --- 顶部导航条 --- */
+.site-nav {
+  height: 36px;
+  background-color: #f5f5f5; /* 顶部导航条恢复微灰色，与下方纯白内容区分开 */
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #6c6c6c;
+}
+
+.site-nav-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+}
+
+.welcome-text {
+  margin-right: 15px;
+}
+
+.nav-divider {
+  margin: 0 10px;
+  color: #ddd;
+}
+
+.nav-link {
+  color: #6c6c6c; /* 恢复原本的浅灰色 */
+  text-decoration: none;
+  transition: color 0.2s;
+  cursor: pointer;
+  /* 禁用浏览器默认的点击高亮背景（特别是在移动端模拟或者某些默认样式下） */
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.nav-link:hover {
+  color: #f22e00; /* 淘宝红 */
+  background-color: transparent; /* 强制覆盖悬浮时的背景色为透明 */
+}
+
+.logout-link {
+  margin-left: 10px;
 }
 
 /* --- 顶部搜索栏 --- */
 .tb-header {
-  background-color: #fff;
+  background-color: #fff; /* 搜索栏区域也是纯白，与大背景融为一体 */
   padding: 30px 0;
   margin-bottom: 20px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.02);
@@ -314,7 +430,7 @@ onMounted(() => {
 
 .search-type {
   padding: 0 15px 0 20px;
-  color: #666;
+  color: #ccc;
   font-size: 14px;
   background-color: #f5f5f5;
   height: 100%;
@@ -324,7 +440,7 @@ onMounted(() => {
 
 .search-type .divider {
   margin-left: 10px;
-  color: #ccc;
+  color: #f5f5f5;
 }
 
 .search-input {
@@ -359,6 +475,7 @@ onMounted(() => {
   color: #999;
   text-decoration: none;
   margin-right: 15px;
+  cursor: pointer;
 }
 
 .search-hot-links a:hover {
@@ -374,7 +491,7 @@ onMounted(() => {
 
 /* 左侧分类 */
 .tb-categories {
-  width: 230px;
+  width: 260px; /* 从230px稍微加宽，适应1400px总宽 */
   background-color: #fff;
   border-radius: 12px;
   padding: 20px 0;
@@ -402,8 +519,9 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
+/* 移除整个背景的发光/变色 */
 .cat-item:hover {
-  background-color: #fff0e8;
+  background-color: transparent;
 }
 
 .cat-link {
@@ -411,13 +529,11 @@ onMounted(() => {
   transition: color 0.2s;
 }
 
-.cat-link:hover {
-  color: #ff5000;
-}
-
+/* 悬浮或激活时，字体变成淡橙色 */
+.cat-link:hover,
 .cat-link.active {
-  color: #ff5000;
-  font-weight: bold;
+  color: #ff8c00; /* 淡橙色 */
+  font-weight: normal; /* 保持字体粗细不变 */
 }
 
 .cat-divider {
@@ -434,54 +550,34 @@ onMounted(() => {
   position: relative;
 }
 
-.banner-card {
+.banner-img {
   width: 100%;
   height: 100%;
-  background: linear-gradient(135deg, #a8e063 0%, #56ab2f 100%);
-  display: flex;
-  align-items: center;
-  padding: 50px;
-  color: #fff;
-  box-sizing: border-box;
 }
 
-.banner-text h2 {
-  font-size: 42px;
-  margin: 0 0 20px 0;
-  line-height: 1.2;
+/* 覆盖 Element Plus 轮播图的一些默认样式以匹配淘宝风格 */
+:deep(.el-carousel__indicators--horizontal) {
+  bottom: 20px;
 }
 
-.banner-text p {
-  font-size: 20px;
-  margin: 0;
-  opacity: 0.9;
-}
-
-.banner-dots {
-  position: absolute;
-  bottom: 25px;
-  left: 50px;
-  display: flex;
-  gap: 8px;
-}
-
-.banner-dots .dot {
+:deep(.el-carousel__indicator--horizontal .el-carousel__button) {
   width: 10px;
   height: 10px;
-  background-color: rgba(255,255,255,0.4);
   border-radius: 50%;
-  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.5);
+  opacity: 1;
+  transition: all 0.3s;
 }
 
-.banner-dots .dot.active {
-  background-color: #fff;
+:deep(.el-carousel__indicator--horizontal.is-active .el-carousel__button) {
   width: 24px;
   border-radius: 5px;
+  background-color: #fff;
 }
 
 /* 右侧广告 */
 .tb-right-ads {
-  width: 240px;
+  width: 260px; /* 从240px加宽 */
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -560,30 +656,29 @@ onMounted(() => {
 /* 商品网格 */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr); /* 从5列调整为6列，和淘宝一样一行展示更多商品 */
   gap: 15px;
 }
 
 .product-item {
-  background-color: #fff;
-  border-radius: 12px;
+  background-color: transparent;
   overflow: hidden;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all 0.2s;
   cursor: pointer;
-  border: 1px solid #f0f0f0;
+  border: 1px solid transparent; /* 默认透明边框，防止悬浮时抖动 */
+  border-radius: 12px; /* 给整个商品项（包括边框）添加圆角 */
 }
 
 .product-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
-  border-color: #ff5000;
+  border-color: #ff5000; /* 悬浮时变成淘宝经典的橙黄色边框 */
 }
 
 .img-wrapper {
   width: 100%;
   aspect-ratio: 1 / 1;
-  background-color: #f9f9f9;
+  background-color: transparent;
   overflow: hidden;
+  border-radius: 8px; /* 图片本身可以带一点圆角，更美观 */
 }
 
 .p-img {
@@ -607,7 +702,7 @@ onMounted(() => {
 }
 
 .p-info {
-  padding: 14px;
+  padding: 10px 8px; /* 稍微调整内边距，使其与边框的距离更协调 */
 }
 
 .p-title {
@@ -620,35 +715,6 @@ onMounted(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   margin-bottom: 10px;
-}
-
-.p-tags {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-  height: 20px;
-  overflow: hidden;
-}
-
-.tag-company {
-  font-size: 12px;
-  color: #ff5000;
-  background-color: #ffe4d0;
-  padding: 2px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.tag-hot {
-  font-size: 12px;
-  color: #fff;
-  background-color: #ff5000;
-  padding: 2px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
 }
 
 .p-price-row {
