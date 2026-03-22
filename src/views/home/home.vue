@@ -343,7 +343,7 @@ onMounted(() => {
 }
 
 .nav-link {
-  color: #6c6c6c; /* 恢复原本的浅灰色 */
+  color: #6c6c6c; /* 恢复原本的浅灰色 */  
   text-decoration: none;
   transition: color 0.2s;
   cursor: pointer;
