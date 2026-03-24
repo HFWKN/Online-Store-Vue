@@ -713,6 +713,7 @@ onMounted(() => {
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2; /* 新增标准属性 */
   -webkit-box-orient: vertical;
   margin-bottom: 10px;
 }

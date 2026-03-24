@@ -2,4 +2,4 @@
 import request from "@/utils/request"
 
 // 登录
-export const LoginApi = (UserDto) => request.post('/auth/user/login', UserDto)
+export const LoginApi = (UserDto) => request.post('/user/login', UserDto)
