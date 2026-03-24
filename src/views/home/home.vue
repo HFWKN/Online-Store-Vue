@@ -19,7 +19,6 @@ const 每页条数 = ref(24) // 调整为24条，配合一行6个商品，正好
 const 总数 = ref(0)
 const currentCategoryId = ref(null) // 记录当前选中的分类ID
 const searchKeyword = ref('') // 搜索关键词
-const currentUsername = ref('') // 当前登录用户名
 
 // 分类数据
 const categories = ref([])
@@ -110,23 +109,11 @@ const onCurrentChange = (value) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-const handleLogout = () => {
-  localStorage.removeItem('loginUser')
-  router.push('/login')
+const goToDetail = (id) => {
+  router.push({ name: 'shopDetailed', params: { id } })
 }
 
 onMounted(() => {
-  // 获取当前登录用户名
-  const loginUserStr = localStorage.getItem('loginUser')
-  if (loginUserStr) {
-    try {
-      const user = JSON.parse(loginUserStr)
-      currentUsername.value = user.username || user.name || '用户'
-    } catch (e) {
-      console.error('解析用户信息失败')
-    }
-  }
-
   loadCategories()
   loadProducts()
 })
@@ -134,28 +121,6 @@ onMounted(() => {
 
 <template>
   <div class="taobao-container">
-    <!-- 顶部导航条 -->
-    <div class="site-nav">
-      <div class="site-nav-inner">
-        <div class="nav-left">
-          <a href="javascript:void(0)" class="nav-link">我的订单</a>
-          <span class="nav-divider">|</span>
-          <a href="javascript:void(0)" class="nav-link">购物车</a>
-          <span class="nav-divider">|</span>
-          <a href="javascript:void(0)" class="nav-link">收藏夹</a>
-        </div>
-        <div class="nav-right">
-          <template v-if="currentUsername">
-            <span class="welcome-text">欢迎您，{{ currentUsername }}</span>
-            <a href="javascript:void(0)" class="nav-link logout-link" @click="handleLogout">退出登录 / 切换账号</a>
-          </template>
-          <template v-else>
-            <router-link to="/login" class="nav-link">请登录</router-link>
-          </template>
-        </div>
-      </div>
-    </div>
-
     <!-- 顶部搜索栏 -->
     <header class="tb-header">
       <div class="header-inner">
@@ -249,7 +214,7 @@ onMounted(() => {
       </div>
 
       <div class="product-grid" v-loading="loading">
-        <div class="product-item" v-for="item in productList" :key="item.id">
+        <div class="product-item" v-for="item in productList" :key="item.id" @click="goToDetail(item.id)">
           <div class="img-wrapper">
             <!-- 这里依然可以用el-image，也可以用普通img，但为了图片懒加载和错误占位保留el-image -->
             <el-image :src="item.mainImage" fit="cover" class="p-img" lazy>
@@ -300,65 +265,9 @@ onMounted(() => {
 }
 
 /* 内部居中容器宽度统一 */
-.header-inner, .main-inner, .tb-recommend, .site-nav-inner {
+.header-inner, .main-inner, .tb-recommend {
   width: 1400px; /* 从1200px调整为1400px，让显示区域更宽 */
   margin: 0 auto;
-}
-
-/* --- 顶部导航条 --- */
-.site-nav {
-  height: 36px;
-  background-color: #f5f5f5; /* 顶部导航条恢复微灰色，与下方纯白内容区分开 */
-  border-bottom: 1px solid #eee;
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  color: #6c6c6c;
-}
-
-.site-nav-inner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 100%;
-}
-
-.nav-left {
-  display: flex;
-  align-items: center;
-}
-
-.nav-right {
-  display: flex;
-  align-items: center;
-}
-
-.welcome-text {
-  margin-right: 15px;
-}
-
-.nav-divider {
-  margin: 0 10px;
-  color: #ddd;
-}
-
-.nav-link {
-  color: #6c6c6c; /* 恢复原本的浅灰色 */  
-  text-decoration: none;
-  transition: color 0.2s;
-  cursor: pointer;
-  /* 禁用浏览器默认的点击高亮背景（特别是在移动端模拟或者某些默认样式下） */
-  -webkit-tap-highlight-color: transparent;
-  outline: none;
-}
-
-.nav-link:hover {
-  color: #f22e00; /* 淘宝红 */
-  background-color: transparent; /* 强制覆盖悬浮时的背景色为透明 */
-}
-
-.logout-link {
-  margin-left: 10px;
 }
 
 /* --- 顶部搜索栏 --- */
