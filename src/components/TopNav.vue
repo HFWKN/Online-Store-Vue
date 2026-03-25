@@ -6,9 +6,10 @@
         <span class="nav-divider">|</span>
         <a href="javascript:void(0)" class="nav-link">购物车</a>
         <span class="nav-divider">|</span>
-        <a href="javascript:void(0)" class="nav-link">收藏夹</a>
+        <router-link to="/userLike" class="nav-link">收藏夹</router-link>
       </div>
       <div class="nav-right">
+        <router-link to="/home" class="nav-link" style="margin-right: 15px;">主页</router-link>
         <template v-if="currentUsername">
           <span class="welcome-text">欢迎您，{{ currentUsername }}</span>
           <a href="javascript:void(0)" class="nav-link logout-link" @click="handleLogout">退出登录 / 切换账号</a>

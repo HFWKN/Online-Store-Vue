@@ -58,10 +58,22 @@
                 <div v-else class="no-specs">暂无可选规格</div>
               </div>
 
+              <!-- 数量选择区 -->
+              <div class="quantity-section">
+                <span class="quantity-label">数量</span>
+                <el-input-number 
+                  v-model="buyCount" 
+                  :min="1" 
+                  :max="99" 
+                  size="large"
+                  class="quantity-input"
+                />
+              </div>
+
               <!-- 购买操作区 -->
               <div class="actions">
                 <el-button type="danger" size="large" class="buy-btn" @click="handleBuy">立即购买</el-button>
-                <el-button type="warning" plain size="large" class="cart-btn" @click="handleBuy">加入购物车</el-button>
+                <el-button type="warning" plain size="large" class="cart-btn" @click="handleAddToCart">加入购物车</el-button>
               </div>
             </div>
           </div>
@@ -118,6 +130,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getProductDetailed, getProductSpec } from '@/api/product/shopDetailed'
+import { addToCart } from '@/api/cart/cart'
 import { ArrowLeft, Picture } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -130,6 +143,7 @@ const product = ref(null)
 const specs = ref([])
 const activeTab = ref('details')
 const selectedSpecId = ref(null)
+const buyCount = ref(1) // 购买数量，默认1
 
 // 获取商品详情
 const fetchProductDetail = async () => {
@@ -152,8 +166,33 @@ const fetchProductSpec = async () => {
     const res = await getProductSpec(productId)
     if (res.success) {
       specs.value = res.data || []
-      // 默认选中第一个规格
-      if (specs.value.length > 0) {
+      
+      // 尝试匹配路由中传递过来的规格参数
+      const targetSpecStr = route.query.spec
+      let matchedSpecId = null
+
+      if (targetSpecStr && specs.value.length > 0) {
+        // 将传递过来的规格字符串拆分成关键字，支持空格、逗号、加号等常见分隔符
+        // 例如 "黑色，16+512g，一年质保" 会被拆分成 ["黑色", "16", "512g", "一年质保"]
+        const targetWords = targetSpecStr.split(/[\s,，+、]+/).filter(Boolean)
+        
+        const matchedItem = specs.value.find(item => {
+          // 详情页的规格可能是零散字段，把对象里所有的字符串值拼起来作为匹配池
+          const specStr = Object.values(item).filter(v => typeof v === 'string').join(' ')
+          
+          // 如果规格池包含所有关键字，即认为匹配成功
+          return targetWords.every(word => specStr.includes(word)) || targetSpecStr === specStr.trim()
+        })
+
+        if (matchedItem) {
+          matchedSpecId = matchedItem.id
+        }
+      }
+
+      // 如果有匹配到的规格就选中它，否则默认选中第一个规格
+      if (matchedSpecId) {
+        selectedSpecId.value = matchedSpecId
+      } else if (specs.value.length > 0) {
         selectedSpecId.value = specs.value[0].id
       }
     } else {
@@ -174,6 +213,34 @@ const goHome = () => {
 
 const handleBuy = () => {
   ElMessage.info('购买功能暂未实现，敬请期待！')
+}
+
+// 加入购物车处理逻辑
+const handleAddToCart = async () => {
+  if (!selectedSpecId.value) {
+    ElMessage.warning('请先选择商品规格')
+    return
+  }
+
+  try {
+    const cartDto = {
+      productId: Number(productId),
+      categoryId: product.value.categoryId,
+      specId: Number(selectedSpecId.value),
+      price: Number(product.value.price),
+      num: buyCount.value
+    }
+
+    const res = await addToCart(cartDto)
+    if (res.success) {
+      ElMessage.success('成功加入购物车！')
+    } else {
+      ElMessage.error(res.message || '加入购物车失败')
+    }
+  } catch (error) {
+    console.error('加入购物车异常:', error)
+    ElMessage.error('网络异常，加入购物车失败')
+  }
 }
 
 const formatDate = (dateString) => {
@@ -364,6 +431,22 @@ onMounted(async () => {
 .no-specs {
   color: #999;
   font-size: 14px;
+}
+
+.quantity-section {
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+}
+
+.quantity-label {
+  font-size: 14px;
+  color: #999;
+  margin-right: 20px;
+}
+
+.quantity-input {
+  width: 150px;
 }
 
 .actions {

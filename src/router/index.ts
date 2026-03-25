@@ -23,6 +23,11 @@ const router = createRouter({
       path: '/shopDetailed/:id',
       name: 'shopDetailed',
       component: () => import('@/views/shopDetailed/shopDetailed.vue')
+    },
+    {
+      path: '/userLike',
+      name: 'userLike',
+      component: () => import('@/views/userLike/userLike.vue')
     }
   ],
   scrollBehavior(to, from, savedPosition) {
