@@ -49,10 +49,10 @@
                     v-for="item in specs" 
                     :key="item.id" 
                     class="spec-item"
-                    :class="{ active: selectedSpecId === item.id }"
+                    :class="{ active: String(selectedSpecId) === String(item.id) }"
                     @click="selectSpec(item.id)"
                   >
-                    {{ item.color }} - {{ item.spec }}
+                    {{ item.color }} - {{ item.productSpec ?? item.spec }}
                   </div>
                 </div>
                 <div v-else class="no-specs">暂无可选规格</div>
@@ -162,12 +162,19 @@ const isLikeLoading = ref(false) // 收藏按钮防抖状态
 // 计算展示的价格
 const displayPrice = computed(() => {
   if (selectedSpecId.value && specs.value.length > 0) {
-    const selectedSpec = specs.value.find(item => item.id === selectedSpecId.value)
+    const selectedSpec = specs.value.find(item => String(item.id) === String(selectedSpecId.value))
     if (selectedSpec && selectedSpec.specPrice != null) {
       return Number(selectedSpec.specPrice).toFixed(2)
     }
   }
   return product.value && product.value.price ? Number(product.value.price).toFixed(2) : '0.00'
+})
+
+const selectedSpecText = computed(() => {
+  if (!selectedSpecId.value || specs.value.length === 0) return null
+  const selectedSpec = specs.value.find(item => String(item.id) === String(selectedSpecId.value))
+  if (!selectedSpec) return null
+  return selectedSpec.productSpec ?? selectedSpec.spec ?? null
 })
 
 // 获取商品详情
@@ -190,11 +197,18 @@ const fetchProductSpec = async () => {
   try {
     const res = await getProductSpec(productId)
     if (res.success) {
-      specs.value = res.data || []
+      specs.value = (res.data || []).map(item => {
+        if (!item) return item
+        if (item.spec == null && item.productSpec != null) return { ...item, spec: item.productSpec }
+        return item
+      })
       
       // 尝试匹配路由中传递过来的规格参数
-      const targetSpecStr = route.query.spec
       const targetSpecId = route.query.specId
+      const targetSpecStr =
+        route.query.spec ??
+        route.query.productSpec ??
+        (typeof targetSpecId === 'string' && Number.isNaN(Number(targetSpecId)) ? targetSpecId : null)
       let matchedSpecId = null
 
       if (targetSpecId && specs.value.length > 0) {
@@ -203,12 +217,14 @@ const fetchProductSpec = async () => {
         if (matchedItem) {
           matchedSpecId = matchedItem.id
         }
-      } else if (targetSpecStr && specs.value.length > 0) {
+      }
+
+      if (!matchedSpecId && targetSpecStr && specs.value.length > 0) {
         // 兼容原来的模糊字符串匹配逻辑
         const targetWords = targetSpecStr.split(/[\s,，+、]+/).filter(Boolean)
         
         const matchedItem = specs.value.find(item => {
-          const specStr = Object.values(item).filter(v => typeof v === 'string').join(' ')
+          const specStr = [item.color, item.productSpec ?? item.spec].filter(Boolean).join(' ')
           return targetWords.every(word => specStr.includes(word)) || targetSpecStr === specStr.trim()
         })
 
@@ -255,6 +271,7 @@ const handleAddToCart = async () => {
       productId: Number(productId),
       categoryId: product.value.categoryId,
       specId: Number(selectedSpecId.value),
+      productSpec: selectedSpecText.value,
       price: Number(displayPrice.value),
       num: buyCount.value
     }
@@ -279,7 +296,8 @@ const checkLikeStatus = async () => {
     const likeDto = {
       productId: Number(productId),
       categoryId: product.value.categoryId,
-      specId: Number(selectedSpecId.value)
+      specId: Number(selectedSpecId.value),
+      productSpec: selectedSpecText.value
     }
     const res = await getUserLikeStatus(likeDto)
     if (res.success) {
@@ -312,7 +330,8 @@ const handleToggleLike = async () => {
     const likeDto = {
       productId: Number(productId),
       categoryId: product.value.categoryId,
-      specId: Number(selectedSpecId.value)
+      specId: Number(selectedSpecId.value),
+      productSpec: selectedSpecText.value
     }
 
     if (isLiked.value) {

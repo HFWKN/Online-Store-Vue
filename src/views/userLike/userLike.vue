@@ -28,10 +28,18 @@ const loadLikeList = async () => {
 }
 
 // 跳转到商品详情
-const goToDetail = (productId, specId) => {
+const goToDetail = (productId, specId, productSpec) => {
+  const query = {}
+  if (specId) {
+    query.specId = specId
+  }
+  if (productSpec) {
+    query.productSpec = productSpec
+  }
+
   router.push({
     path: `/shopDetailed/${productId}`,
-    query: { specId: specId } // 将规格ID通过 query 参数传递
+    query
   })
 }
 
@@ -47,7 +55,8 @@ const handleCancelLike = (item) => {
       const likeDto = {
         productId: item.productId,
         categoryId: item.categoryId,
-        specId: item.productSpec // 根据新的 Vo，这里的 productSpec 实际上存的是规格 ID
+        specId: item.specId,
+        productSpec: item.productSpec
       }
       console.log('发送给后端的 likeDto:', likeDto);
       const res = await deleteUserLike(likeDto)
@@ -87,7 +96,7 @@ onMounted(() => {
           :key="item.id" 
           class="like-card" 
           shadow="hover"
-          @click="goToDetail(item.productId, item.productSpec)"
+          @click="goToDetail(item.productId, item.specId, item.productSpec)"
         >
           <div class="product-image-box">
             <el-image 
@@ -105,8 +114,10 @@ onMounted(() => {
           
           <div class="product-info">
             <h3 class="product-name" :title="item.productName">{{ item.productName }}</h3>
-            <!-- 修改展示规格信息的来源：如果有颜色就展示颜色，否则可以考虑根据需要展示其它信息 -->
-            <p class="product-spec" v-if="item.color">{{ item.color }}</p>
+            <!-- 展示颜色和规格 -->
+            <p class="product-spec" v-if="item.color || item.productSpec || item.spec">
+              {{ [item.color, item.productSpec ?? item.spec].filter(Boolean).join(' / ') }}
+            </p>
             <p class="product-spec" v-else>默认规格</p>
             <div class="price-box">
               <span class="price-symbol">¥</span>
