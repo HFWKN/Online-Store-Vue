@@ -33,7 +33,7 @@
               <div class="price-box">
                 <div class="price-row">
                   <span class="price-label">价格</span>
-                  <span class="price"><span class="currency">￥</span>{{ product.price ? Number(product.price).toFixed(2) : '0.00' }}</span>
+                  <span class="price"><span class="currency">￥</span>{{ displayPrice }}</span>
                 </div>
                 <div class="info-row" v-if="product.categoryName">
                   <span class="info-label">分类</span>
@@ -74,6 +74,17 @@
               <div class="actions">
                 <el-button type="danger" size="large" class="buy-btn" @click="handleBuy">立即购买</el-button>
                 <el-button type="warning" plain size="large" class="cart-btn" @click="handleAddToCart">加入购物车</el-button>
+                <el-button 
+                  :type="isLiked ? 'warning' : 'default'" 
+                  plain 
+                  size="large" 
+                  class="like-btn" 
+                  :disabled="isLikeLoading"
+                  @click="handleToggleLike"
+                >
+                  <el-icon><Star :class="{ 'is-active-star': isLiked }" /></el-icon> 
+                  {{ isLiked ? '已收藏' : '收藏' }}
+                </el-button>
               </div>
             </div>
           </div>
@@ -127,11 +138,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getProductDetailed, getProductSpec } from '@/api/product/shopDetailed'
 import { addToCart } from '@/api/cart/cart'
-import { ArrowLeft, Picture } from '@element-plus/icons-vue'
+import { addUserLike, deleteUserLike, getUserLikeStatus } from '@/api/user/userLike'
+import { ArrowLeft, Picture, Star } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
@@ -144,6 +156,19 @@ const specs = ref([])
 const activeTab = ref('details')
 const selectedSpecId = ref(null)
 const buyCount = ref(1) // 购买数量，默认1
+const isLiked = ref(false) // 收藏状态
+const isLikeLoading = ref(false) // 收藏按钮防抖状态
+
+// 计算展示的价格
+const displayPrice = computed(() => {
+  if (selectedSpecId.value && specs.value.length > 0) {
+    const selectedSpec = specs.value.find(item => item.id === selectedSpecId.value)
+    if (selectedSpec && selectedSpec.specPrice != null) {
+      return Number(selectedSpec.specPrice).toFixed(2)
+    }
+  }
+  return product.value && product.value.price ? Number(product.value.price).toFixed(2) : '0.00'
+})
 
 // 获取商品详情
 const fetchProductDetail = async () => {
@@ -169,18 +194,21 @@ const fetchProductSpec = async () => {
       
       // 尝试匹配路由中传递过来的规格参数
       const targetSpecStr = route.query.spec
+      const targetSpecId = route.query.specId
       let matchedSpecId = null
 
-      if (targetSpecStr && specs.value.length > 0) {
-        // 将传递过来的规格字符串拆分成关键字，支持空格、逗号、加号等常见分隔符
-        // 例如 "黑色，16+512g，一年质保" 会被拆分成 ["黑色", "16", "512g", "一年质保"]
+      if (targetSpecId && specs.value.length > 0) {
+        // 优先根据直接传过来的 specId 匹配
+        const matchedItem = specs.value.find(item => String(item.id) === String(targetSpecId))
+        if (matchedItem) {
+          matchedSpecId = matchedItem.id
+        }
+      } else if (targetSpecStr && specs.value.length > 0) {
+        // 兼容原来的模糊字符串匹配逻辑
         const targetWords = targetSpecStr.split(/[\s,，+、]+/).filter(Boolean)
         
         const matchedItem = specs.value.find(item => {
-          // 详情页的规格可能是零散字段，把对象里所有的字符串值拼起来作为匹配池
           const specStr = Object.values(item).filter(v => typeof v === 'string').join(' ')
-          
-          // 如果规格池包含所有关键字，即认为匹配成功
           return targetWords.every(word => specStr.includes(word)) || targetSpecStr === specStr.trim()
         })
 
@@ -227,7 +255,7 @@ const handleAddToCart = async () => {
       productId: Number(productId),
       categoryId: product.value.categoryId,
       specId: Number(selectedSpecId.value),
-      price: Number(product.value.price),
+      price: Number(displayPrice.value),
       num: buyCount.value
     }
 
@@ -243,6 +271,80 @@ const handleAddToCart = async () => {
   }
 }
 
+// 获取收藏状态
+const checkLikeStatus = async () => {
+  if (!selectedSpecId.value || !product.value) return
+  
+  try {
+    const likeDto = {
+      productId: Number(productId),
+      categoryId: product.value.categoryId,
+      specId: Number(selectedSpecId.value)
+    }
+    const res = await getUserLikeStatus(likeDto)
+    if (res.success) {
+      isLiked.value = res.data
+    }
+  } catch (error) {
+    console.error('获取收藏状态异常:', error)
+  }
+}
+
+// 监听规格变化，重新获取收藏状态
+watch(selectedSpecId, (newVal) => {
+  if (newVal) {
+    checkLikeStatus()
+  }
+})
+
+// 切换收藏状态处理逻辑
+const handleToggleLike = async () => {
+  if (!selectedSpecId.value) {
+    ElMessage.warning('请先选择商品规格')
+    return
+  }
+  
+  if (isLikeLoading.value) return // 防抖，防止重复点击
+  
+  isLikeLoading.value = true // 开启禁用状态
+
+  try {
+    const likeDto = {
+      productId: Number(productId),
+      categoryId: product.value.categoryId,
+      specId: Number(selectedSpecId.value)
+    }
+
+    if (isLiked.value) {
+      // 取消收藏
+      const res = await deleteUserLike(likeDto)
+      if (res.success) {
+        ElMessage.success('已取消收藏')
+        isLiked.value = false
+      } else {
+        ElMessage.error(res.message || '取消收藏失败')
+      }
+    } else {
+      // 新增收藏
+      const res = await addUserLike(likeDto)
+      if (res.success) {
+        ElMessage.success('成功加入收藏！')
+        isLiked.value = true
+      } else {
+        ElMessage.error(res.message || '加入收藏失败')
+      }
+    }
+  } catch (error) {
+    console.error('操作收藏异常:', error)
+    ElMessage.error('网络异常，操作失败')
+  } finally {
+    // 操作完成后，等待 1 秒再解除按钮禁用
+    setTimeout(() => {
+      isLikeLoading.value = false
+    }, 1000)
+  }
+}
+
 const formatDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
@@ -255,6 +357,10 @@ onMounted(async () => {
     loading.value = true
     await Promise.all([fetchProductDetail(), fetchProductSpec()])
     loading.value = false
+    // 初始化完成后检查当前选中规格的收藏状态
+    if (selectedSpecId.value) {
+      checkLikeStatus()
+    }
   } else {
     ElMessage.error('缺少商品ID参数')
     loading.value = false
@@ -455,9 +561,13 @@ onMounted(async () => {
   gap: 15px;
 }
 
-.buy-btn, .cart-btn {
+.buy-btn, .cart-btn, .like-btn {
   width: 160px;
   font-size: 16px;
+}
+
+.is-active-star {
+  color: #E6A23C;
 }
 
 .buy-btn {

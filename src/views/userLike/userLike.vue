@@ -1,9 +1,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getAllUserLike } from '@/api/user/userLike.js'
-import { ElMessage } from 'element-plus'
-import { Picture } from '@element-plus/icons-vue'
+import { getAllUserLike, deleteUserLike } from '@/api/user/userLike.js'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Picture, Delete } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const likeList = ref([])
@@ -28,10 +28,42 @@ const loadLikeList = async () => {
 }
 
 // 跳转到商品详情
-const goToDetail = (productId, productSpec) => {
+const goToDetail = (productId, specId) => {
   router.push({
     path: `/shopDetailed/${productId}`,
-    query: { spec: productSpec } // 将规格信息通过 query 参数传递
+    query: { specId: specId } // 将规格ID通过 query 参数传递
+  })
+}
+
+// 取消收藏
+const handleCancelLike = (item) => {
+  console.log('准备取消收藏，当前商品项数据:', item);
+  ElMessageBox.confirm('确定要取消收藏该商品吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    try {
+      const likeDto = {
+        productId: item.productId,
+        categoryId: item.categoryId,
+        specId: item.productSpec // 根据新的 Vo，这里的 productSpec 实际上存的是规格 ID
+      }
+      console.log('发送给后端的 likeDto:', likeDto);
+      const res = await deleteUserLike(likeDto)
+      if (res.success) {
+        ElMessage.success('已取消收藏')
+        // 重新加载列表
+        loadLikeList()
+      } else {
+        ElMessage.error(res.message || '取消收藏失败')
+      }
+    } catch (error) {
+      console.error('取消收藏异常:', error)
+      ElMessage.error('网络异常，操作失败')
+    }
+  }).catch(() => {
+    // 取消操作
   })
 }
 
@@ -73,13 +105,27 @@ onMounted(() => {
           
           <div class="product-info">
             <h3 class="product-name" :title="item.productName">{{ item.productName }}</h3>
-            <p class="product-spec">{{ item.productSpec }}</p>
+            <!-- 修改展示规格信息的来源：如果有颜色就展示颜色，否则可以考虑根据需要展示其它信息 -->
+            <p class="product-spec" v-if="item.color">{{ item.color }}</p>
+            <p class="product-spec" v-else>默认规格</p>
             <div class="price-box">
               <span class="price-symbol">¥</span>
-              <span class="price-value">{{ item.price?.toFixed(2) }}</span>
+              <span class="price-value">{{ (item.specPrice != null ? item.specPrice : item.price)?.toFixed(2) }}</span>
             </div>
-            <div class="category-tag">
-              <el-tag size="small" type="info">{{ item.categoryName }}</el-tag>
+            <div class="bottom-actions">
+              <div class="category-tag">
+                <el-tag size="small" type="info">{{ item.categoryName }}</el-tag>
+              </div>
+              <el-button 
+                type="danger" 
+                link 
+                size="small" 
+                class="cancel-btn"
+                @click.stop="handleCancelLike(item)"
+              >
+                <el-icon><Delete /></el-icon>
+                取消收藏
+              </el-button>
             </div>
           </div>
         </el-card>
@@ -193,7 +239,21 @@ onMounted(() => {
   font-weight: bold;
 }
 
-.category-tag {
+.bottom-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 8px;
+}
+
+.cancel-btn {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cancel-btn:hover {
+  color: #f56c6c;
 }
 </style>
