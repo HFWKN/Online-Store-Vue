@@ -4,12 +4,12 @@
       <div class="nav-left">
         <a href="javascript:void(0)" class="nav-link">我的订单</a>
         <span class="nav-divider">|</span>
-        <a href="javascript:void(0)" class="nav-link">购物车</a>
+        <router-link to="/cart" class="nav-link" :class="{ 'active': route.path === '/cart' }">购物车</router-link>
         <span class="nav-divider">|</span>
-        <router-link to="/userLike" class="nav-link">收藏夹</router-link>
+        <router-link to="/userLike" class="nav-link" :class="{ 'active': route.path === '/userLike' }">收藏夹</router-link>
       </div>
       <div class="nav-right">
-        <router-link to="/home" class="nav-link" style="margin-right: 15px;">主页</router-link>
+        <router-link to="/home" class="nav-link" :class="{ 'active': route.path === '/home' }" style="margin-right: 15px;">主页</router-link>
         <router-link to="/userLike" class="nav-link" style="margin-right: 15px;">我的</router-link>
         <template v-if="currentUsername">
           <span class="welcome-text">欢迎您，{{ currentUsername }}</span>
@@ -110,7 +110,8 @@ watch(() => route.path, () => {
   outline: none;
 }
 
-.nav-link:hover {
+.nav-link:hover,
+.nav-link.active {
   color: #f22e00;
   background-color: transparent;
 }

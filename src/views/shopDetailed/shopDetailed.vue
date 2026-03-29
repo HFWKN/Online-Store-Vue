@@ -140,9 +140,9 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getProductDetailed, getProductSpec } from '@/api/product/shopDetailed'
-import { addToCart } from '@/api/cart/cart'
-import { addUserLike, deleteUserLike, getUserLikeStatus } from '@/api/user/userLike'
+import { getProductDetailed, getProductSpec } from '@/api/product/shopDetailed.js'
+import { addToCart } from '@/api/cart/cart.js'
+import { addUserLike, deleteUserLike, getUserLikeStatus } from '@/api/user/userLike.js'
 import { ArrowLeft, Picture, Star } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -205,13 +205,26 @@ const fetchProductSpec = async () => {
       
       // 尝试匹配路由中传递过来的规格参数
       const targetSpecId = route.query.specId
+      const targetColor = route.query.color
+      const targetSpec = route.query.spec
+      
       const targetSpecStr =
         route.query.spec ??
         route.query.productSpec ??
         (typeof targetSpecId === 'string' && Number.isNaN(Number(targetSpecId)) ? targetSpecId : null)
       let matchedSpecId = null
 
-      if (targetSpecId && specs.value.length > 0) {
+      // 如果有明确传 color 和 spec 参数，优先精确匹配
+      if (targetColor && targetSpec && specs.value.length > 0) {
+        const matchedItem = specs.value.find(item => 
+          item.color === targetColor && (item.productSpec === targetSpec || item.spec === targetSpec)
+        )
+        if (matchedItem) {
+          matchedSpecId = matchedItem.id
+        }
+      }
+
+      if (!matchedSpecId && targetSpecId && specs.value.length > 0) {
         // 优先根据直接传过来的 specId 匹配
         const matchedItem = specs.value.find(item => String(item.id) === String(targetSpecId))
         if (matchedItem) {

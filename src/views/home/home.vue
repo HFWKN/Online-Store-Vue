@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { pageList } from '@/api/product/page.js'
 import { categoryList } from '@/api/product/productCategory.js'
-import { Picture } from '@element-plus/icons-vue'
+import { Picture, ShoppingCart } from '@element-plus/icons-vue'
 
 import banner1 from '@/image/Design006_CwCkwTBK7m.jpg'
 import banner2 from '@/image/OIP-C (1).webp'
@@ -113,6 +113,10 @@ const goToDetail = (id) => {
   router.push({ name: 'shopDetailed', params: { id } })
 }
 
+const goToCart = () => {
+  router.push({ name: 'cart' })
+}
+
 onMounted(() => {
   loadCategories()
   loadProducts()
@@ -151,6 +155,13 @@ onMounted(() => {
             <a href="javascript:void(0)" @click.prevent="handleHotSearch('无线蓝牙耳机')">无线蓝牙耳机</a>
             <a href="javascript:void(0)" @click.prevent="handleHotSearch('尼康Nikon')">尼康Nikon</a>
           </div>
+        </div>
+        
+        <div class="cart-area">
+          <el-button type="danger" plain class="cart-btn" @click="goToCart" style="cursor: pointer; z-index: 10;">
+            <el-icon class="cart-icon"><ShoppingCart /></el-icon>
+            我的购物车
+          </el-button>
         </div>
       </div>
     </header>
@@ -389,6 +400,31 @@ onMounted(() => {
 
 .search-hot-links a:hover {
   color: #ff5000;
+}
+
+.cart-area {
+  margin-left: 40px;
+}
+
+.cart-btn {
+  height: 44px;
+  font-size: 14px;
+  font-weight: bold;
+  border-color: #ff5000;
+  color: #ff5000;
+  border-radius: 22px;
+  padding: 0 20px;
+}
+
+.cart-btn:hover {
+  background-color: #fff2e8;
+  border-color: #ff5000;
+  color: #ff5000;
+}
+
+.cart-icon {
+  font-size: 18px;
+  margin-right: 4px;
 }
 
 /* --- 首屏主体区域 --- */

@@ -28,6 +28,11 @@ const router = createRouter({
       path: '/userLike',
       name: 'userLike',
       component: () => import('@/views/userLike/userLike.vue')
+    },
+    {
+      path: '/cart',
+      name: 'cart',
+      component: () => import('@/views/cart/cart.vue')
     }
   ],
   scrollBehavior(to, from, savedPosition) {
