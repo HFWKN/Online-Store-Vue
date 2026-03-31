@@ -240,7 +240,6 @@ onMounted(() => {
             <div class="p-title" :title="item.name">{{ item.name }}</div>
             <div class="p-price-row">
               <span class="price"><span class="currency">¥</span>{{ Number(item.price).toFixed(2) }}</span>
-              <span class="sales">0人付款</span>
             </div>
           </div>
         </div>
@@ -678,11 +677,6 @@ onMounted(() => {
 .price .currency {
   font-size: 14px;
   margin-right: 2px;
-}
-
-.sales {
-  font-size: 12px;
-  color: #999;
 }
 
 .empty-state {

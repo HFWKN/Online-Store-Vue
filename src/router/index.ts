@@ -33,6 +33,44 @@ const router = createRouter({
       path: '/cart',
       name: 'cart',
       component: () => import('@/views/cart/cart.vue')
+    },
+    {
+      path: '/my',
+      name: 'my',
+      component: () => import('@/views/my/my.vue'),
+      redirect: '/my/info',
+      children: [
+        {
+          path: 'info',
+          name: 'my-info',
+          component: () => import('@/views/my/info.vue')
+        },
+        {
+          path: 'address',
+          name: 'my-address',
+          component: () => import('@/views/my/address.vue')
+        },
+        {
+          path: 'favorite',
+          name: 'my-favorite',
+          component: () => import('@/views/userLike/userLike.vue')
+        },
+        {
+          path: 'cart',
+          name: 'my-cart',
+          component: () => import('@/views/cart/cart.vue')
+        },
+        {
+          path: 'order',
+          name: 'my-order',
+          component: () => import('@/views/my/order.vue')
+        },
+        {
+          path: 'seckill',
+          name: 'my-seckill',
+          component: () => import('@/views/my/seckill.vue')
+        }
+      ]
     }
   ],
   scrollBehavior(to, from, savedPosition) {

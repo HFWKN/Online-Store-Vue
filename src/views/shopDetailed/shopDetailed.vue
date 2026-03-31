@@ -39,6 +39,14 @@
                   <span class="info-label">分类</span>
                   <span class="info-value">{{ product.categoryName }}</span>
                 </div>
+                <div class="info-row">
+                  <span class="info-label">销量</span>
+                  <span class="info-value">{{ displaySaleNum }} 件</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">库存</span>
+                  <span class="info-value">{{ displayStock }} 件</span>
+                </div>
               </div>
 
               <!-- 规格选择区 -->
@@ -159,22 +167,32 @@ const buyCount = ref(1) // 购买数量，默认1
 const isLiked = ref(false) // 收藏状态
 const isLikeLoading = ref(false) // 收藏按钮防抖状态
 
+const selectedSpec = computed(() => {
+  if (!selectedSpecId.value || specs.value.length === 0) return null
+  return specs.value.find(item => String(item.id) === String(selectedSpecId.value)) ?? null
+})
+
 // 计算展示的价格
 const displayPrice = computed(() => {
-  if (selectedSpecId.value && specs.value.length > 0) {
-    const selectedSpec = specs.value.find(item => String(item.id) === String(selectedSpecId.value))
-    if (selectedSpec && selectedSpec.specPrice != null) {
-      return Number(selectedSpec.specPrice).toFixed(2)
-    }
-  }
+  if (selectedSpec.value && selectedSpec.value.specPrice != null) return Number(selectedSpec.value.specPrice).toFixed(2)
   return product.value && product.value.price ? Number(product.value.price).toFixed(2) : '0.00'
 })
 
+const displayStock = computed(() => {
+  if (!selectedSpec.value) return 0
+  if (selectedSpec.value.stock == null) return 0
+  return Number(selectedSpec.value.stock)
+})
+
+const displaySaleNum = computed(() => {
+  if (!selectedSpec.value) return 0
+  if (selectedSpec.value.saleNum == null) return 0
+  return Number(selectedSpec.value.saleNum)
+})
+
 const selectedSpecText = computed(() => {
-  if (!selectedSpecId.value || specs.value.length === 0) return null
-  const selectedSpec = specs.value.find(item => String(item.id) === String(selectedSpecId.value))
-  if (!selectedSpec) return null
-  return selectedSpec.productSpec ?? selectedSpec.spec ?? null
+  if (!selectedSpec.value) return null
+  return selectedSpec.value.productSpec ?? selectedSpec.value.spec ?? null
 })
 
 // 获取商品详情
@@ -515,6 +533,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   font-size: 13px;
+  margin-top: 8px;
 }
 
 .info-label {
