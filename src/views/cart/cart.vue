@@ -23,51 +23,7 @@ const loadCartData = async () => {
     }
   } catch (error) {
     console.error('获取购物车异常:', error)
-    // 为了方便用户预览界面，在接口未实现或报错时，注入默认演示数据
-    cartList.value = [ 
-      { 
-        "id": 4, 
-        "userId": 1, 
-        "productId": 1, 
-        "productName": "华为Mate60 Pro", 
-        "mainImage": "https://tse1-mm.cn.bing.net/th/id/OIP-C.swF1nIJBYgyNcPZgm0Xd_AHaFG?w=194&h=133&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3", 
-        "categoryId": 1, 
-        "categoryName": "手机", 
-        "specPrice": 7599.00, 
-        "num": 6, 
-        "color": "白色", 
-        "allPrice": 45594.00, 
-        "productSpec": "高性能处理器" 
-      }, 
-      { 
-        "id": 5, 
-        "userId": 1, 
-        "productId": 1, 
-        "productName": "华为Mate60 Pro", 
-        "mainImage": "https://tse1-mm.cn.bing.net/th/id/OIP-C.swF1nIJBYgyNcPZgm0Xd_AHaFG?w=194&h=133&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3", 
-        "categoryId": 1, 
-        "categoryName": "手机", 
-        "specPrice": 7499.00, 
-        "num": 2, 
-        "color": "黑色", 
-        "allPrice": 14998.00, 
-        "productSpec": "高性能处理器" 
-      }, 
-      { 
-        "id": 6, 
-        "userId": 1, 
-        "productId": 1, 
-        "productName": "华为Mate60 Pro", 
-        "mainImage": "https://tse1-mm.cn.bing.net/th/id/OIP-C.swF1nIJBYgyNcPZgm0Xd_AHaFG?w=194&h=133&c=7&r=0&o=7&dpr=1.3&pid=1.7&rm=3", 
-        "categoryId": 1, 
-        "categoryName": "手机", 
-        "specPrice": 7399.00, 
-        "num": 1, 
-        "color": "白色", 
-        "allPrice": 7399.00, 
-        "productSpec": "低性能处理器" 
-      } 
-    ]
+    ElMessage.error('获取购物车异常，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -140,8 +96,22 @@ const handleCheckout = () => {
     ElMessage.warning('请先选择要结算的商品')
     return
   }
-  ElMessage.success(`准备结算，共支付: ¥${totalPrice.value.toFixed(2)}`)
-  // TODO: 跳转到订单确认页面
+  
+  // 提取结算所需的字段
+  const checkoutItems = selectedItems.value.map(item => ({
+    productId: item.productId,
+    // 适配后端可能返回的各种命名：specId, productSpecId, spec_id 等
+    specId: item.specId || item.productSpecId || item.spec_id || null, 
+    productName: item.productName,
+    mainImage: item.mainImage,
+    color: item.color,
+    productSpec: item.productSpec,
+    price: item.specPrice,
+    num: item.num
+  }))
+  
+  sessionStorage.setItem('checkoutItems', JSON.stringify(checkoutItems))
+  router.push('/checkout')
 }
 
 // 计算选中商品总数量

@@ -12,8 +12,14 @@
         <el-card v-for="item in addressList" :key="item.id" class="address-card" shadow="hover">
           <div class="address-info">
             <div class="address-detail">
-              <span class="text">{{ item.address }}</span>
-              <el-tag size="small" type="success" v-if="item.isDefault === 1" class="default-tag">默认地址</el-tag>
+              <div class="user-info">
+                <span class="name">{{ item.receiverName }}</span>
+                <span class="phone">{{ item.receiverPhone }}</span>
+              </div>
+              <div class="address-text-wrapper">
+                <span class="text">{{ item.address }}</span>
+                <el-tag size="small" type="success" v-if="item.isDefault === 1" class="default-tag">默认地址</el-tag>
+              </div>
             </div>
             <div class="address-actions">
               <el-button 
@@ -50,6 +56,19 @@
     <!-- 新增/修改地址对话框 -->
     <el-dialog v-model="showAddDialog" :title="dialogTitle" width="500px">
       <el-form :model="addForm" :rules="rules" ref="formRef" label-width="100px">
+        <el-form-item label="收货人" prop="receiverName">
+          <el-input 
+            v-model="addForm.receiverName" 
+            placeholder="请输入收货人姓名" 
+          />
+        </el-form-item>
+        <el-form-item label="手机号码" prop="receiverPhone">
+          <el-input 
+            v-model="addForm.receiverPhone" 
+            placeholder="请输入收货人手机号码" 
+            maxlength="11"
+          />
+        </el-form-item>
         <el-form-item label="详细地址" prop="address">
           <el-input 
             v-model="addForm.address" 
@@ -87,10 +106,20 @@ const currentEditId = ref(null) // 记录当前正在修改的地址ID
 const dialogTitle = computed(() => isEdit.value ? '修改收货地址' : '新增收货地址')
 
 const addForm = ref({
+  receiverName: '',
+  receiverPhone: '',
   address: ''
 })
 
 const rules = {
+  receiverName: [
+    { required: true, message: '收货人姓名不能为空', trigger: 'blur' },
+    { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
+  ],
+  receiverPhone: [
+    { required: true, message: '手机号码不能为空', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
+  ],
   address: [
     { required: true, message: '详细地址不能为空', trigger: 'blur' },
     { min: 5, max: 100, message: '长度在 5 到 100 个字符', trigger: 'blur' }
@@ -101,6 +130,8 @@ const rules = {
 const openAddDialog = () => {
   isEdit.value = false
   currentEditId.value = null
+  addForm.value.receiverName = ''
+  addForm.value.receiverPhone = ''
   addForm.value.address = ''
   showAddDialog.value = true
 }
@@ -109,6 +140,8 @@ const openAddDialog = () => {
 const openEditDialog = (item) => {
   isEdit.value = true
   currentEditId.value = item.id
+  addForm.value.receiverName = item.receiverName
+  addForm.value.receiverPhone = item.receiverPhone
   addForm.value.address = item.address
   showAddDialog.value = true
 }
@@ -185,11 +218,15 @@ const submitAdd = async () => {
           // 修改模式
           res = await updateAddress({
             id: currentEditId.value,
+            receiverName: addForm.value.receiverName,
+            receiverPhone: addForm.value.receiverPhone,
             address: addForm.value.address
           })
         } else {
           // 新增模式
           res = await addAddress({
+            receiverName: addForm.value.receiverName,
+            receiverPhone: addForm.value.receiverPhone,
             address: addForm.value.address
           })
         }
@@ -198,6 +235,8 @@ const submitAdd = async () => {
           ElMessage.success(isEdit.value ? '修改地址成功' : '新增地址成功')
           showAddDialog.value = false
           // 清空表单
+          addForm.value.receiverName = ''
+          addForm.value.receiverPhone = ''
           addForm.value.address = ''
           currentEditId.value = null
           // 重新加载列表
@@ -269,6 +308,24 @@ onMounted(() => {
 }
 
 .address-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.user-info {
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.user-info .phone {
+  margin-left: 12px;
+  font-size: 14px;
+  color: #606266;
+}
+
+.address-text-wrapper {
   display: flex;
   align-items: center;
   gap: 10px;

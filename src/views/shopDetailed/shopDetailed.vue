@@ -166,6 +166,7 @@ const selectedSpecId = ref(null)
 const buyCount = ref(1) // 购买数量，默认1
 const isLiked = ref(false) // 收藏状态
 const isLikeLoading = ref(false) // 收藏按钮防抖状态
+const isBuying = ref(false) // 购买/加购物车按钮防抖状态
 
 const selectedSpec = computed(() => {
   if (!selectedSpecId.value || specs.value.length === 0) return null
@@ -287,15 +288,46 @@ const goHome = () => {
 }
 
 const handleBuy = () => {
-  ElMessage.info('购买功能暂未实现，敬请期待！')
-}
-
-// 加入购物车处理逻辑
-const handleAddToCart = async () => {
+  if (isBuying.value) return // 防止连续点击
+  
   if (!selectedSpecId.value) {
     ElMessage.warning('请先选择商品规格')
     return
   }
+
+  isBuying.value = true
+
+  // 构造结算所需的对象
+  const checkoutItems = [{
+    productId: Number(productId),
+    specId: Number(selectedSpecId.value),
+    productName: product.value.name,
+    mainImage: product.value.mainImage,
+    color: selectedSpec.value?.color,
+    productSpec: selectedSpec.value?.productSpec || selectedSpec.value?.spec,
+    price: Number(displayPrice.value),
+    num: buyCount.value
+  }]
+
+  sessionStorage.setItem('checkoutItems', JSON.stringify(checkoutItems))
+  
+  // 延迟 1 秒释放按钮并跳转，防止连续点击
+  setTimeout(() => {
+    isBuying.value = false
+    router.push('/checkout')
+  }, 1000)
+}
+
+// 加入购物车处理逻辑
+const handleAddToCart = async () => {
+  if (isBuying.value) return // 防止连续点击
+  
+  if (!selectedSpecId.value) {
+    ElMessage.warning('请先选择商品规格')
+    return
+  }
+
+  isBuying.value = true
 
   try {
     const cartDto = {
@@ -316,6 +348,11 @@ const handleAddToCart = async () => {
   } catch (error) {
     console.error('加入购物车异常:', error)
     ElMessage.error('网络异常，加入购物车失败')
+  } finally {
+    // 延迟 1 秒释放按钮，防止连续点击
+    setTimeout(() => {
+      isBuying.value = false
+    }, 1000)
   }
 }
 
