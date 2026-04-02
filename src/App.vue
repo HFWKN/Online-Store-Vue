@@ -9,7 +9,7 @@ const route = useRoute()
 
 <template>
   <el-config-provider :locale="zhCn">
-    <TopNav v-if="route.path !== '/login' && route.path !== '/'" />
+    <TopNav v-if="route.path !== '/login' && route.path !== '/register' && route.path !== '/'" />
     <router-view></router-view>
   </el-config-provider>
 </template>

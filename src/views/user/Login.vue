@@ -65,7 +65,7 @@ const quxiao = ()=>{
       <div class="dialog-footer">
         <div class="all2">
            <span>无账号？</span>
-    <router-link to="/login" class="login-link">注册</router-link>
+    <router-link to="/register" class="login-link">注册</router-link>
     </div>
         <el-button @click="quxiao">清空</el-button>
         <el-button type="primary" @click="tijiao">提交</el-button>

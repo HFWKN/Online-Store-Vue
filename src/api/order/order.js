@@ -27,3 +27,16 @@ export function createOrder(data, token) {
     }
   })
 }
+
+/**
+ * 查询当前用户的所有订单明细
+ * @param {Object} params 包含 status, productName 的对象
+ * @returns {Promise}
+ */
+export function getAllOrderItems(params) {
+  return request({
+    url: '/order/orderItem',
+    method: 'get',
+    params
+  })
+}

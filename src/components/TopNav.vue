@@ -2,7 +2,7 @@
   <div class="site-nav">
     <div class="site-nav-inner">
       <div class="nav-left">
-        <a href="javascript:void(0)" class="nav-link">我的订单</a>
+        <router-link to="/my/order" class="nav-link" :class="{ 'active': route.path === '/my/order' }">我的订单</router-link>
         <span class="nav-divider">|</span>
         <router-link to="/cart" class="nav-link" :class="{ 'active': route.path === '/cart' }">购物车</router-link>
         <span class="nav-divider">|</span>
