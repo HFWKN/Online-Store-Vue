@@ -17,6 +17,11 @@ export default defineConfig({
   },
   // 配置反向代理
   server: {
+
+    // 👇 1. 允许特定的域名访问（解决 Blocked request 报错）
+    allowedHosts: [
+      'liubingqi.us.ci' 
+    ],
     proxy: {
       '/api': { // 如果前端请求的路径是/api
         target: 'http://localhost:10010', // 那么就把请求交给此服务器
