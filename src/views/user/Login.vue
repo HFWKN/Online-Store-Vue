@@ -20,20 +20,24 @@ const UserDto = ref({
 
 // 提交按钮
 const tijiao = async()=>{
-    const result = await LoginApi(UserDto.value)
-    if(result.success){
-      ElMessage.success('正在登录');
-      // 把当前登录用户的信息储存在浏览器的localStorage中
-      // 如果后端返回的数据里没有 username，我们手动把登录时输入的 username 拼进去
-      const loginData = result.data || {}
-      if (!loginData.username) {
-        loginData.username = UserDto.value.username
-      }
-      localStorage.setItem('loginUser', JSON.stringify(loginData));  
-      router.push('/home');
-      ElMessage.success('登录成功');
-    }else{
-      ElMessage.error('登录失败');
+    try {
+        const result = await LoginApi(UserDto.value)
+        if(result.success){
+          ElMessage.success('正在登录');
+          // 把当前登录用户的信息储存在浏览器的localStorage中
+          // 如果后端返回的数据里没有 username，我们手动把登录时输入的 username 拼进去
+          const loginData = result.data || {}
+          if (!loginData.username) {
+            loginData.username = UserDto.value.username
+          }
+          localStorage.setItem('loginUser', JSON.stringify(loginData));  
+          router.push('/home');
+          ElMessage.success('登录成功');
+        }else{
+          ElMessage.error(result.message || '登录失败');
+        }
+    } catch (error) {
+        console.error('登录异常:', error);
     }
 }
 
