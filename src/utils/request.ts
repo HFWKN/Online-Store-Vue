@@ -44,20 +44,21 @@ request.interceptors.response.use(
   (error) => {
     // 处理响应错误
     if (error.response) {
-      const { status } = error.response
+      const { status, data } = error.response
+      const msg = data?.message || data?.msg || ''
       
       if (status === 401) {
         // 未授权，跳转登录页
-        ElMessage.error('登录超时，请重新登录')
+        ElMessage.error(msg || '登录超时，请重新登录')
         router.push('/login')
       } else if (status === 403) {
-        ElMessage.error('没有权限访问')
+        ElMessage.error(msg || '没有权限访问')
       } else if (status === 404) {
-        ElMessage.error('请求的资源不存在')
+        ElMessage.error(msg || '请求的资源不存在')
       } else if (status === 500) {
-        ElMessage.error('服务器错误')
+        ElMessage.error(msg || '服务器错误')
       } else {
-        ElMessage.error('接口访问异常')
+        ElMessage.error(msg || '接口访问异常')
       }
     } else {
       ElMessage.error('网络连接失败')
