@@ -8,6 +8,7 @@ import { Picture, ShoppingCart } from '@element-plus/icons-vue'
 import banner1 from '@/image/Design006_CwCkwTBK7m.jpg'
 import banner2 from '@/image/OIP-C (1).webp'
 import banner3 from '@/image/OIP-C.webp'
+import seckillImage from '@/image/780.jpg'
 
 const router = useRouter()
 
@@ -28,14 +29,6 @@ const bannerImages = ref([
   banner1,
   banner2,
   banner3
-])
-
-// 模拟右侧推荐数据
-const rightBanners = ref([
-  { title: '品质家居', sub: '超值优惠', color: '#ff6b6b' },
-  { title: '精致美妆', sub: '品质之选', color: '#f06292' },
-  { title: '品质五金', sub: '超值特惠', color: '#ff9800' },
-  { title: '超值百货', sub: '省钱省心', color: '#4fc3f7' }
 ])
 
 // 数据拉取方法
@@ -117,6 +110,10 @@ const goToCart = () => {
   router.push({ name: 'cart' })
 }
 
+const goToSeckill = () => {
+  router.push({ name: 'seckill' })
+}
+
 onMounted(() => {
   loadCategories()
   loadProducts()
@@ -196,19 +193,11 @@ onMounted(() => {
           </el-carousel>
         </div>
 
-        <!-- 右侧推荐卡片 -->
-        <aside class="tb-right-ads">
-          <div 
-            v-for="(ad, index) in rightBanners" 
-            :key="index" 
-            class="ad-card"
-            :style="{ borderLeftColor: ad.color }"
-          >
-            <div class="ad-info">
-              <h4>{{ ad.title }}</h4>
-              <p>{{ ad.sub }}</p>
-            </div>
-            <div class="ad-pic" :style="{ backgroundColor: ad.color + '22' }"></div>
+        <!-- 右侧秒杀专场图片 -->
+        <aside class="tb-right-ads seckill-banner" @click="goToSeckill">
+          <img :src="seckillImage" alt="秒杀活动专场" class="seckill-img" />
+          <div class="seckill-overlay">
+            点击此处进入秒杀专场
           </div>
         </aside>
       </div>
@@ -519,48 +508,52 @@ onMounted(() => {
   background-color: #fff;
 }
 
-/* 右侧广告 */
+/* 右侧广告/秒杀专场 */
 .tb-right-ads {
   width: 260px; /* 从240px加宽 */
   display: flex;
   flex-direction: column;
-  gap: 15px;
 }
 
-.ad-card {
-  background-color: #fff;
-  border-radius: 12px;
-  padding: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.seckill-banner {
   cursor: pointer;
+  border-radius: 12px;
+  overflow: hidden;
   transition: transform 0.2s, box-shadow 0.2s;
-  border-left: 4px solid #ccc;
-  flex: 1;
+  height: 480px; /* 和中间大图保持同样高度 */
+  position: relative;
 }
 
-.ad-card:hover {
+.seckill-banner:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.ad-info h4 {
-  margin: 0 0 6px 0;
+.seckill-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.seckill-overlay {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(255, 80, 0, 0.9);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 20px;
   font-size: 16px;
-  color: #333;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(255, 80, 0, 0.4);
+  transition: all 0.2s;
 }
 
-.ad-info p {
-  margin: 0;
-  font-size: 13px;
-  color: #999;
-}
-
-.ad-pic {
-  width: 56px;
-  height: 56px;
-  border-radius: 8px;
+.seckill-banner:hover .seckill-overlay {
+  background-color: #ff5000;
+  transform: translateX(-50%) scale(1.05);
 }
 
 /* --- 猜你喜欢 --- */
