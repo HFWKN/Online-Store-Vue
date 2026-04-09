@@ -17,10 +17,12 @@ export default defineConfig({
   },
   // 配置反向代理
   server: {
-
+     // 👇 1. 添加这一行，允许外部网络访问
+    host: true,
     // 👇 1. 允许特定的域名访问（解决 Blocked request 报错）
     allowedHosts: [
-      'liubingqi.us.ci' 
+      'liubingqi.us.ci' ,
+      'store-lbq.cc.cd'
     ],
     proxy: {
       '/api': { // 如果前端请求的路径是/api
