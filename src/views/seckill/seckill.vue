@@ -16,7 +16,7 @@
           @click="selectActivity(activity.id)"
         >
           <div class="time-box">
-            <span class="time">{{ formatTime(activity.beginTime, activity.endTime, currentActivity?.id === activity.id) }}</span>
+            <span class="time">{{ formatTime(activity.beginTime, activity.endTime, currentActivity?.id === activity.id, nextActivity?.id === activity.id) }}</span>
           </div>
           <div class="status-box">
             <span v-if="currentActivity?.id === activity.id">抢购中</span>
@@ -44,7 +44,7 @@
                 <span class="price-hint">点击查看具体价格</span>
               </div>
               <div class="product-actions">
-                <el-button type="danger" class="buy-btn">立即抢购</el-button>
+                <el-button type="danger" class="buy-btn" @click="goToBuy(product)">立即抢购</el-button>
               </div>
             </div>
           </div>
@@ -57,8 +57,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { getSeckillActivityList, getSeckillProductList } from '@/api/seckill.js'
 import { ElMessage } from 'element-plus'
+
+const router = useRouter()
 
 // 数据状态
 const activityList = ref([])
@@ -125,22 +128,26 @@ const formatImageUrl = (url) => {
   return url.replace(/[`'"]/g, '').trim()
 }
 
-// 格式化时间：当前活动显示 HH:mm - HH:mm，其他活动显示 MM月DD日
-const formatTime = (beginTimeStr, endTimeStr, isCurrent) => {
+// 格式化时间：当前活动显示 HH:mm - HH:mm，下个活动显示 YYYY年MM月DD日 HH:mm，其他活动显示 YYYY年MM月DD日
+const formatTime = (beginTimeStr, endTimeStr, isCurrent, isNext) => {
   if (!beginTimeStr) return ''
   const beginDate = new Date(beginTimeStr)
   
+  const year = beginDate.getFullYear()
+  const month = beginDate.getMonth() + 1
+  const day = beginDate.getDate()
+  const beginHours = String(beginDate.getHours()).padStart(2, '0')
+  const beginMinutes = String(beginDate.getMinutes()).padStart(2, '0')
+
   if (isCurrent && endTimeStr) {
     const endDate = new Date(endTimeStr)
-    const beginHours = String(beginDate.getHours()).padStart(2, '0')
-    const beginMinutes = String(beginDate.getMinutes()).padStart(2, '0')
     const endHours = String(endDate.getHours()).padStart(2, '0')
     const endMinutes = String(endDate.getMinutes()).padStart(2, '0')
     return `${beginHours}:${beginMinutes} - ${endHours}:${endMinutes}`
+  } else if (isNext) {
+    return `${year}年${month}月${day}日 ${beginHours}:${beginMinutes}`
   } else {
-    const month = beginDate.getMonth() + 1
-    const day = beginDate.getDate()
-    return `${month}月${day}日`
+    return `${year}年${month}月${day}日`
   }
 }
 
@@ -155,6 +162,19 @@ const selectActivity = (id) => {
   if (currentSelectedId.value === id) return
   currentSelectedId.value = id
   fetchProductList(id)
+}
+
+// 跳转到购买页面
+const goToBuy = (product) => {
+  router.push({
+    path: '/buy',
+    query: {
+      productId: product.productId,
+      productName: product.productName,
+      activityId: currentSelectedId.value,
+      imageUrl: formatImageUrl(product.imageUrl)
+    }
+  })
 }
 
 onMounted(() => {

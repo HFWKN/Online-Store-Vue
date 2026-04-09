@@ -50,6 +50,11 @@ const router = createRouter({
       component: () => import('@/views/seckill/seckill.vue')
     },
     {
+      path: '/buy',
+      name: 'buy',
+      component: () => import('@/views/seckill/buy.vue')
+    },
+    {
       path: '/my',
       name: 'my',
       component: () => import('@/views/my/my.vue'),
