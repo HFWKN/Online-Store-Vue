@@ -67,9 +67,48 @@
                 <span class="limit-hint">秒杀商品限购1件</span>
               </div>
 
+              <!-- 收货地址选择区 -->
+              <div class="address-section">
+                <span class="address-label">收货地址</span>
+                <div v-if="addressList.length > 0" class="address-select-wrapper">
+                  <el-select 
+                    v-model="selectedAddressId" 
+                    placeholder="请选择收货地址" 
+                    size="large"
+                    class="address-select"
+                  >
+                    <el-option
+                      v-for="addr in addressList"
+                      :key="addr.id"
+                      :label="`${addr.receiverName} ${addr.receiverPhone} - ${addr.address}`"
+                      :value="addr.id"
+                    >
+                      <div class="select-option-content">
+                        <span class="option-name">{{ addr.receiverName }}</span>
+                        <span class="option-phone">{{ addr.receiverPhone }}</span>
+                        <el-tag v-if="addr.isDefault === 1" size="small" type="success" class="option-tag">默认</el-tag>
+                        <span class="option-address">{{ addr.address }}</span>
+                      </div>
+                    </el-option>
+                  </el-select>
+                </div>
+                <div v-else class="no-address-inline">
+                  <span class="no-address-text">暂无收货地址</span>
+                  <el-button type="primary" link @click="goToAddressManager">去添加</el-button>
+                </div>
+              </div>
+
               <!-- 购买操作区 -->
               <div class="actions">
-                <el-button type="danger" size="large" class="buy-btn" @click="handleBuy">立即抢购</el-button>
+                <el-button 
+                  type="danger" 
+                  size="large" 
+                  class="buy-btn" 
+                  @click="handleBuy"
+                  :loading="isSubmitting"
+                >
+                  立即抢购
+                </el-button>
               </div>
             </div>
           </div>
@@ -83,9 +122,10 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getStockSpecList } from '@/api/buy.js'
-import { ArrowLeft, Picture } from '@element-plus/icons-vue'
+import { getStockSpecList, getSeckillToken, submitSeckillOrder } from '@/api/buy.js'
+import { ArrowLeft, Picture, Check } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { selectAddress } from '@/api/user/address.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -96,9 +136,17 @@ const specs = ref([])
 const selectedSpecId = ref(null)
 const buyCount = ref(1) // 购买数量，默认1，且不可修改
 
+const addressList = ref([])
+const selectedAddressId = ref(null)
+
 const selectedSpec = computed(() => {
   if (!selectedSpecId.value || specs.value.length === 0) return null
   return specs.value.find(item => String(item.id) === String(selectedSpecId.value)) ?? null
+})
+
+const selectedAddress = computed(() => {
+  if (!selectedAddressId.value || addressList.value.length === 0) return null
+  return addressList.value.find(addr => addr.id === selectedAddressId.value) ?? null
 })
 
 // 计算展示的价格
@@ -159,18 +207,97 @@ const goBack = () => {
   router.back()
 }
 
-const handleBuy = () => {
+const goToAddressManager = () => {
+  router.push('/my/address')
+}
+
+const isSubmitting = ref(false)
+
+const handleBuy = async () => {
   if (!selectedSpecId.value) {
     ElMessage.warning('请先选择商品规格')
     return
   }
   
-  ElMessage.info('暂不支持下单操作')
+  if (!selectedAddressId.value) {
+    ElMessage.warning('请选择收货地址')
+    return
+  }
+
+  const { activityId, productId } = route.query
+  if (!activityId || !productId) {
+    ElMessage.error('缺少必要的商品参数')
+    return
+  }
+
+  if (isSubmitting.value) return
+  isSubmitting.value = true
+
+  try {
+    const dto = {
+      productId: Number(productId),
+      activityId: Number(activityId),
+      specId: Number(selectedSpecId.value)
+    }
+
+    const res = await getSeckillToken(dto)
+    if (res.success && res.data) {
+      const token = res.data
+      sessionStorage.setItem('seckillToken', token)
+      
+      // 组装下单参数
+      const orderDto = {
+        addressId: selectedAddressId.value,
+        stockId: selectedSpec.value.id, // 根据后端要求，这里用规格的ID作为库存ID (前端规格项的id就是stockId)
+        activityId: Number(activityId),
+        productId: Number(productId),
+        specId: selectedSpec.value.id,
+        num: buyCount.value,
+        payAmount: Number(displayPrice.value)
+      }
+
+      // 发送秒杀下单请求
+      const orderRes = await submitSeckillOrder(orderDto, token)
+      
+      if (orderRes.success) {
+        ElMessage.success(orderRes.data || orderRes.message || '秒杀成功！')
+        // TODO: 下单成功后，可跳转至订单列表页或支付页
+        // router.push('/my/order')
+      } else {
+        ElMessage.error(orderRes.message || '秒杀下单失败')
+      }
+      
+    } else {
+      ElMessage.error(res.message || '获取抢购资格失败')
+    }
+  } catch (error) {
+    console.error('抢购失败:', error)
+    ElMessage.error('网络异常，抢购失败')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+// 获取地址列表
+const fetchAddress = async () => {
+  try {
+    const res = await selectAddress()
+    if (res.success) {
+      addressList.value = res.data || []
+      if (addressList.value.length > 0) {
+        const defaultAddr = addressList.value.find(a => a.isDefault === 1)
+        selectedAddressId.value = defaultAddr ? defaultAddr.id : addressList.value[0].id
+      }
+    }
+  } catch (error) {
+    console.error('获取地址失败:', error)
+  }
 }
 
 onMounted(() => {
   window.scrollTo(0, 0)
   fetchProductSpec()
+  fetchAddress()
 })
 </script>
 
@@ -361,5 +488,67 @@ onMounted(() => {
 .buy-btn:hover {
   background-color: #f04b00;
   border-color: #f04b00;
+}
+
+/* 地址选择区 */
+.address-section {
+  margin-bottom: 30px;
+  display: flex;
+  align-items: center;
+}
+
+.address-label {
+  font-size: 14px;
+  color: #999;
+  margin-right: 20px;
+  white-space: nowrap;
+}
+
+.address-select-wrapper {
+  flex: 1;
+  max-width: 500px;
+}
+
+.address-select {
+  width: 100%;
+}
+
+.select-option-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.option-name {
+  font-weight: bold;
+  color: #333;
+}
+
+.option-phone {
+  color: #666;
+}
+
+.option-tag {
+  flex-shrink: 0;
+}
+
+.option-address {
+  color: #999;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.no-address-inline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.no-address-text {
+  color: #999;
+  font-size: 14px;
 }
 </style>
