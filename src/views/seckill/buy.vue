@@ -233,49 +233,76 @@ const handleBuy = async () => {
   if (isSubmitting.value) return
   isSubmitting.value = true
 
-  try {
-    const dto = {
-      productId: Number(productId),
-      activityId: Number(activityId),
-      specId: Number(selectedSpecId.value)
-    }
+  const MAX_RETRIES = 2 // 最大重试次数
 
-    const res = await getSeckillToken(dto)
-    if (res.success && res.data) {
-      const token = res.data
+  // 获取 token 所需的参数
+  const tokenDto = {
+    productId: Number(productId),
+    activityId: Number(activityId),
+    specId: Number(selectedSpecId.value)
+  }
+
+  // 组装下单参数
+  const orderDto = {
+    addressId: selectedAddressId.value,
+    stockId: selectedSpec.value.id, // 根据后端要求，这里用规格的ID作为库存ID
+    activityId: Number(activityId),
+    productId: Number(productId),
+    specId: selectedSpec.value.id,
+    num: buyCount.value,
+    payAmount: Number(displayPrice.value)
+  }
+
+  // 内部封装一个带重试机制的下单函数
+  const attemptOrder = async (retryCount) => {
+    try {
+      // 1. 领 token（每次下单/重试前都要重新获取）
+      const tokenRes = await getSeckillToken(tokenDto)
+      if (!tokenRes.success || !tokenRes.data) {
+        ElMessage.error(tokenRes.message || '获取抢购资格失败')
+        return
+      }
+      const token = tokenRes.data
       sessionStorage.setItem('seckillToken', token)
       
-      // 组装下单参数
-      const orderDto = {
-        addressId: selectedAddressId.value,
-        stockId: selectedSpec.value.id, // 根据后端要求，这里用规格的ID作为库存ID (前端规格项的id就是stockId)
-        activityId: Number(activityId),
-        productId: Number(productId),
-        specId: selectedSpec.value.id,
-        num: buyCount.value,
-        payAmount: Number(displayPrice.value)
-      }
-
-      // 发送秒杀下单请求
+      // 2. 发起秒杀下单请求
       const orderRes = await submitSeckillOrder(orderDto, token)
       
-      if (orderRes.success) {
-        ElMessage.success(orderRes.data || orderRes.message || '秒杀成功！')
-        // TODO: 下单成功后，可跳转至订单列表页或支付页
-        // router.push('/my/order')
+      // 根据后端返回的 Result<CodeInfoVo> 解析
+      if (orderRes.success && orderRes.data) {
+        const codeInfo = orderRes.data // 这个就是后端的 CodeInfoVo
+        
+        if (codeInfo.code === 200) {
+          ElMessage.success(codeInfo.message || '秒杀成功！')
+          // TODO: 下单成功后，可跳转至订单列表页或支付页
+          // router.push('/my/order')
+        } else if (codeInfo.code === 500) {
+          // 500 代表"可重试失败"
+          if (retryCount < MAX_RETRIES) {
+            // 还没有达到最大重试次数，进行自动重试
+            await attemptOrder(retryCount + 1)
+          } else {
+            // 超过重试次数，抛出提示让用户手动重试
+            ElMessage.error('下单失败，请重试')
+          }
+        } else {
+          // 其他业务错误码 (如 401重复购买, 403库存不足, 408活动结束等)
+          ElMessage.warning(codeInfo.message || '秒杀失败')
+        }
       } else {
-        ElMessage.error(orderRes.message || '秒杀下单失败')
+        ElMessage.error(orderRes.message || '秒杀下单请求失败')
       }
       
-    } else {
-      ElMessage.error(res.message || '获取抢购资格失败')
+    } catch (error) {
+      console.error('抢购异常:', error)
+      ElMessage.error('网络异常，抢购失败')
     }
-  } catch (error) {
-    console.error('抢购失败:', error)
-    ElMessage.error('网络异常，抢购失败')
-  } finally {
-    isSubmitting.value = false
   }
+
+  // 开始首次下单尝试
+  await attemptOrder(0)
+  
+  isSubmitting.value = false
 }
 
 // 获取地址列表
