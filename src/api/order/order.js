@@ -40,3 +40,16 @@ export function getAllOrderItems(params) {
     params
   })
 }
+
+/**
+ * 轮询获取订单消息
+ * @param {Object} params 包含 lastTime, lastId, limit 的对象
+ * @returns {Promise}
+ */
+export function getOrderMessages(params) {
+  return request({
+    url: '/order/message/getByUserId',
+    method: 'get',
+    params
+  })
+}
