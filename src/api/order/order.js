@@ -53,3 +53,14 @@ export function getOrderMessages(params) {
     params
   })
 }
+
+/**
+ * 获取所有历史订单消息
+ * @returns {Promise}
+ */
+export function getAllOrderMessages() {
+  return request({
+    url: '/order/message/getAll',
+    method: 'get'
+  })
+}

@@ -55,6 +55,11 @@ const router = createRouter({
       component: () => import('@/views/seckill/buy.vue')
     },
     {
+      path: '/historical-information',
+      name: 'historical-information',
+      component: () => import('@/views/message/HistoricalInformation.vue')
+    },
+    {
       path: '/my',
       name: 'my',
       component: () => import('@/views/my/my.vue'),
