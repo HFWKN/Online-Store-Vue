@@ -48,7 +48,8 @@ request.interceptors.response.use(
       const msg = data?.message || data?.msg || ''
       
       if (status === 401) {
-        // 未授权，跳转登录页
+        // 未授权，清除本地用户信息并跳转登录页
+        localStorage.removeItem('loginUser')
         ElMessage.error(msg || '登录超时，请重新登录')
         router.push('/login')
       } else if (status === 403) {
