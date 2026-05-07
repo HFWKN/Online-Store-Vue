@@ -44,10 +44,25 @@ request.interceptors.response.use(
   (error) => {
     // 处理响应错误
     if (error.response) {
-      const { status, data } = error.response
+      const { status, data, config } = error.response
       const msg = data?.message || data?.msg || ''
       
       if (status === 401) {
+        // 白名单接口允许 401 不跳转不报错
+        const whiteListUrls = [
+          '/product/category/list',
+          '/product/page',
+          '/product/list'
+        ]
+        const isWhiteListedApi = whiteListUrls.some(url => config.url && config.url.includes(url))
+        
+        if (isWhiteListedApi) {
+          // 如果是白名单接口返回401，我们直接返回一个假的成功响应或者拦截错误，不触发跳转
+          // 但由于后端拦截器可能强制阻断了，我们需要在后端放行这些接口。
+          // 暂时前端静默处理，不弹窗，不跳转
+          return Promise.resolve({ success: false, message: '未登录但允许访问' })
+        }
+
         // 未授权，清除本地用户信息并跳转登录页
         localStorage.removeItem('loginUser')
         ElMessage.error(msg || '登录超时，请重新登录')

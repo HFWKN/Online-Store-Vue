@@ -44,7 +44,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { RegisterApi } from "@/api/login.js"
+import { RegisterApi, LoginApi } from "@/api/login.js"
 import { ElMessage } from 'element-plus'
 import router from "../../router"
 
@@ -118,9 +118,32 @@ const tijiao = async () => {
       try {
         const result = await RegisterApi(RegisterDto.value)
         if (result.success || result.code === 200 || result.code === 0) { // 兼容不同后端的成功状态
-          ElMessage.success(result.message || '注册成功')
-          // 注册成功后跳转到登录页
-          router.push('/login')
+          
+          // 为了确保拥有完整的 Token，注册成功后自动调用登录接口
+          try {
+            const loginResult = await LoginApi({
+              username: RegisterDto.value.username,
+              password: RegisterDto.value.password
+            })
+            
+            if (loginResult.success || loginResult.code === 200 || loginResult.code === 0) {
+              const loginData = loginResult.data || {}
+              if (!loginData.username) {
+                loginData.username = RegisterDto.value.username
+              }
+              localStorage.setItem('loginUser', JSON.stringify(loginData))
+              ElMessage.success('注册成功，已自动为您登录！')
+              router.push('/home')
+            } else {
+              // 自动登录失败，退回到去登录页
+              ElMessage.success('注册成功，请登录')
+              router.push('/login')
+            }
+          } catch (loginErr) {
+             ElMessage.success('注册成功，请手动登录')
+             router.push('/login')
+          }
+          
         } else {
           ElMessage.error(result.message || '注册失败')
         }
